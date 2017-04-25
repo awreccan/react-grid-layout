@@ -29,6 +29,11 @@ export default class ReactGridLayout extends React.Component {
   static displayName = "ReactGridLayout";
 
   static propTypes = {
+
+    isGrandChild: PropTypes.bool,
+      onGrandChildMessage: PropTypes.func,
+
+
     //
     // Basic props
     //
@@ -128,6 +133,8 @@ export default class ReactGridLayout extends React.Component {
   };
 
   static defaultProps = {
+    isGrandChild: false,
+      onGrandChildMessage: noop,
     autoSize: true,
     cols: 12,
     className: '',
@@ -136,7 +143,7 @@ export default class ReactGridLayout extends React.Component {
     layout: [],
     margin: [10, 10],
     isDraggable: true,
-    isResizable: true,
+    isResizable: false,
     useCSSTransforms: true,
     verticalCompact: true,
     onLayoutChange: noop,
@@ -214,6 +221,7 @@ export default class ReactGridLayout extends React.Component {
    * @param {Element} node The current dragging DOM element
    */
   onDragStart(i:string, x:number, y:number, {e, node}: DragEvent) {
+    e.stopPropagation();
     const {layout} = this.state;
     var l = getLayoutItem(layout, i);
     if (!l) return;
@@ -244,6 +252,8 @@ export default class ReactGridLayout extends React.Component {
 
     // Move the element to the dragged location.
     layout = moveElement(layout, l, x, y, true /* isUserAction */);
+
+    this.props.reportToPlayground && this.props.reportToPlayground('dragged');
 
     this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
 
@@ -428,8 +438,12 @@ export default class ReactGridLayout extends React.Component {
         maxH={l.maxH}
         maxW={l.maxW}
         static={l.static}
-        >
-        {child}
+      >
+          {child}
+          {/*this.props.isGrandChild ?
+              <child onGrandChildMessage={this.props.onGrandChildMessage} /> :
+              <child/>
+          */}
       </GridItem>
     );
   }

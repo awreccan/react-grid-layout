@@ -1,2 +1,2 @@
-var DevLayout = require('./examples/0-showcase.jsx');
+var DevLayout = require('./examples/12-nested.jsx');
 require('./test-hook.jsx')(DevLayout);
