@@ -30,8 +30,9 @@ export default class ReactGridLayout extends React.Component {
 
   static propTypes = {
 
+    draggedTileProps: PropTypes.object,
     isGrandChild: PropTypes.bool,
-      onGrandChildMessage: PropTypes.func,
+    onGrandChildMessage: PropTypes.func,
 
 
     //
@@ -134,7 +135,7 @@ export default class ReactGridLayout extends React.Component {
 
   static defaultProps = {
     isGrandChild: false,
-      onGrandChildMessage: noop,
+    onGrandChildMessage: noop,
     autoSize: true,
     cols: 12,
     className: '',
@@ -158,7 +159,7 @@ export default class ReactGridLayout extends React.Component {
   state: State = {
     activeDrag: null,
     layout: synchronizeLayoutWithChildren(this.props.layout, this.props.children,
-                                          this.props.cols, this.props.verticalCompact),
+      this.props.cols, this.props.verticalCompact),
     mounted: false,
     oldDragItem: null,
     oldLayout: null,
@@ -194,7 +195,7 @@ export default class ReactGridLayout extends React.Component {
     // We need to regenerate the layout.
     if (newLayoutBase) {
       const newLayout = synchronizeLayoutWithChildren(newLayoutBase, nextProps.children,
-                                                      nextProps.cols, nextProps.verticalCompact);
+        nextProps.cols, nextProps.verticalCompact);
       const oldLayout = this.state.layout;
       this.setState({layout: newLayout});
       this.onLayoutMaybeChanged(newLayout, oldLayout);
@@ -220,7 +221,7 @@ export default class ReactGridLayout extends React.Component {
    * @param {Event} e The mousedown event
    * @param {Element} node The current dragging DOM element
    */
-  onDragStart(i:string, x:number, y:number, {e, node}: DragEvent) {
+  onDragStart(i: string, x: number, y: number, {e, node}: DragEvent) {
     e.stopPropagation();
     const {layout} = this.state;
     var l = getLayoutItem(layout, i);
@@ -239,7 +240,7 @@ export default class ReactGridLayout extends React.Component {
    * @param {Event} e The mousedown event
    * @param {Element} node The current dragging DOM element
    */
-  onDrag(i:string, x:number, y:number, {e, node}: DragEvent) {
+  onDrag(i: string, x: number, y: number, {e, node, newPosition}: DragEvent) {
     const {oldDragItem} = this.state;
     let {layout} = this.state;
     var l = getLayoutItem(layout, i);
@@ -253,7 +254,8 @@ export default class ReactGridLayout extends React.Component {
     // Move the element to the dragged location.
     layout = moveElement(layout, l, x, y, true /* isUserAction */);
 
-    this.props.reportToPlayground && this.props.reportToPlayground('dragged');
+    // this.props.bucketToPlayground && this.props.bucketToPlayground('dragging to x: ' + x + ', y: ' + y);
+    // this.props.bucketToPlayground && this.props.bucketToPlayground(newPosition);
 
     this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
 
@@ -271,7 +273,7 @@ export default class ReactGridLayout extends React.Component {
    * @param {Event} e The mousedown event
    * @param {Element} node The current dragging DOM element
    */
-  onDragStop(i:string, x:number, y:number, {e, node}: DragEvent) {
+  onDragStop(i: string, x: number, y: number, {e, node}: DragEvent) {
     const {oldDragItem} = this.state;
     let {layout} = this.state;
     const l = getLayoutItem(layout, i);
@@ -302,7 +304,7 @@ export default class ReactGridLayout extends React.Component {
     }
   }
 
-  onResizeStart(i:string, w:number, h:number, {e, node}: ResizeEvent) {
+  onResizeStart(i: string, w: number, h: number, {e, node}: ResizeEvent) {
     const {layout} = this.state;
     var l = getLayoutItem(layout, i);
     if (!l) return;
@@ -315,7 +317,7 @@ export default class ReactGridLayout extends React.Component {
     this.props.onResizeStart(layout, l, l, null, e, node);
   }
 
-  onResize(i:string, w:number, h:number, {e, node}: ResizeEvent) {
+  onResize(i: string, w: number, h: number, {e, node}: ResizeEvent) {
     const {layout, oldResizeItem} = this.state;
     var l = getLayoutItem(layout, i);
     if (!l) return;
@@ -338,7 +340,7 @@ export default class ReactGridLayout extends React.Component {
     });
   }
 
-  onResizeStop(i:string, w:number, h:number, {e, node}: ResizeEvent) {
+  onResizeStop(i: string, w: number, h: number, {e, node}: ResizeEvent) {
     const {layout, oldResizeItem} = this.state;
     var l = getLayoutItem(layout, i);
 
@@ -394,7 +396,7 @@ export default class ReactGridLayout extends React.Component {
    * @param  {Element} child React element.
    * @return {Element}       Element wrapped in draggable and properly placed.
    */
-  processGridItem(child: React.Element<any>): ?React.Element<any> {
+  processGridItem(child: React.Element<any>, catchBucket): ?React.Element<any> {
     if (!child.key) return;
     const l = getLayoutItem(this.state.layout, child.key);
     if (!l) return null;
@@ -402,6 +404,48 @@ export default class ReactGridLayout extends React.Component {
            maxRows, isDraggable, isResizable, useCSSTransforms,
            draggableCancel, draggableHandle} = this.props;
     const {mounted} = this.state;
+/*
+    let childAddOnProps = {};
+
+    // if this is a container and a tile is being dragged
+    if (this.props.containerToPlayground && this.props.draggedTileProps) {
+      if (catchBucket && catchBucket.i === l.i) {
+        const {w, h} = this.props.draggedTileProps.dimensions;
+        const draggedTileLayoutItem = {
+          x: 0, y: 0,
+          w, h,
+          i: this.props.draggedTileProps.i
+        };
+        const layout = [...child.props.layout, draggedTileLayoutItem];
+        childAddOnProps = {layout};
+
+        this.props.containerToPlayground({
+          draggedTileLayoutItem,
+          toBucketKey: l.i
+        });
+      }
+      // FIXME: also remove the dragged tile from its original bucket's layout
+    }
+*/
+
+    /*var withinBounds;
+     // if this is not a grandchild
+     if (!this.props.bucketToPlayground) {
+
+     // push bucketLayout as props into buckets
+     /!*child = React.cloneElement(child, {
+     ...this.props.bucketProps
+     });*!/
+
+     if (this.props.currPositionAndDimsOfGrandChildBeingDragged) {
+     withinBounds = this.checkIfWithinChildGridItem(child, l);
+
+     if (withinBounds) {
+     console.log('within bounds!', child.key);
+     }
+     }
+     }*/
+
 
     // Parse 'static'. Any properties defined directly on the grid item will take precedence.
     const draggable = Boolean(!l.static && isDraggable && (l.isDraggable || l.isDraggable == null));
@@ -409,6 +453,7 @@ export default class ReactGridLayout extends React.Component {
 
     return (
       <GridItem
+        bucketToPlayground={this.props.bucketToPlayground}
         containerWidth={width}
         cols={cols}
         margin={margin}
@@ -439,16 +484,159 @@ export default class ReactGridLayout extends React.Component {
         maxW={l.maxW}
         static={l.static}
       >
-          {child}
-          {/*this.props.isGrandChild ?
-              <child onGrandChildMessage={this.props.onGrandChildMessage} /> :
-              <child/>
-          */}
+        {child/*React.cloneElement(child, {...childAddOnProps})*/}
       </GridItem>
     );
   }
 
+  // Helper for generating column width
+  calcColWidth(margin, containerPadding, containerWidth, cols): number {
+    return (containerWidth - (margin[0] * (cols - 1)) - (containerPadding[0] * 2)) / cols;
+  }
+
+  checkIfWithinChildGridItem(buckets, bucketLayoutItem: LayoutItem) {
+
+
+    const {w: tileW, h: tileH} = this.props.draggedTileProps.dimensions;
+
+    // bucket width doesn't yet exist as bucket.props.width because it's calculated inside GridItem,
+    // which hasn't been rendered yet
+    const bucketWidth = this.calcColWidth(
+      this.props.margin,
+      this.props.containerPadding || this.props.margin,
+      this.props.width,
+      this.props.cols
+    );
+
+    const tileWidth = this.calcColWidth(
+      bucket.props.margin,
+      bucket.props.containerPadding || bucket.props.margin,
+      bucketWidth,
+      bucket.props.cols
+    );
+
+    const {top: tileTop, left: tileLeft} = this.props.draggedTileProps.newPositionInBucketCoords;
+    // if the x/y position of the tile being dragged is `tileLeft`/`tileTop`,
+    // which column `x`/row `y` inside the bucket should the grandchild end up in?
+
+    // in a bucket,
+    // tileLeft = tileWidth * x + bucketMargin * x + bucketPadding
+    // l = wx + mx + p
+    // l = (w+m)x + p
+    // (l - p) / (w + m) = x
+    // x = (tileLeft - bucketPadding) / (tileWidth + bucketMargin)
+    let x = Math.round((tileLeft - bucket.props.containerPadding[0]) / (tileWidth + bucket.props.margin[0]));
+    let y = Math.round((tileTop - bucket.props.containerPadding[1]) / (bucket.props.rowHeight + bucket.props.margin[1]));
+
+
+    // tileLeft = tileWidth * x + margin * (x + 1) // FIXME: this looks wrong
+    // l = cx + m(x+1)
+    // l = cx + mx + m
+    // l - m = cx + mx
+    // l - m = x(c + m)
+    // (l - m) / (c + m) = x
+    // x = (tileLeft - margin) / (coldWidth + margin)
+    // let x = Math.round((tileLeft - margin[0]) / (tileWidth + margin[0]));
+    // let y = Math.round((tileTop - margin[1]) / (rowHeight + margin[1]));
+    // let x = Math.round((tileLeft + margin[0]) / (tileWidth + margin[0]));
+    // let y = Math.round((tileTop + margin[1]) / (rowHeight + margin[1]));
+
+    let obj = {
+      x,
+      // FIXME: get Bucket cols from playground state, here it's playground cols. same for maxRows
+      'xMax': bucket.props.cols - tileW,
+      y,
+      'yMax': bucket.props.maxRows - tileH,
+      tileLeft, tileWidth
+    };
+    console.log(bucket.key + ' bounds', obj);
+
+    let outX;
+    if (-1 * (bucket.props.containerPadding || bucket.props.margin) <= x || x < 1) {
+      // FIXME: account for margin/padding on left of bucket, the idea being that there
+      // shouldn't be 1 point on the playground that doesn't map to a placeholder location
+      outX = 0;
+    }
+    /* else if ()*/
+
+
+    if (x <= bucket.props.cols - tileW && x >= 0 && y <= bucket.props.maxRows - tileH && y >= 0) {
+      return {x, y};
+    } else {
+      return false;
+    }
+    // Capping
+    // x = Math.max(Math.min(x, cols - w), 0);
+    // y = Math.max(Math.min(y, maxRows - h), 0);
+    //
+    // return {x, y};
+  }
+
+  calcLimitedSpheresOfInfluence({l, containerPadding, bucketWidth, margin, isLeftmost, isRightmost, isTopmost, rowHeight}) {
+    const left = containerPadding[0] + l.x * (bucketWidth + margin[0]) - margin[0] / (isLeftmost ? 1 : 2);
+
+    let right = left + bucketWidth;
+    right += (isLeftmost || isRightmost) ? containerPadding[0] + 0.5 * margin[0] : margin[0];
+
+    const top = containerPadding[1] + l.y * (rowHeight + margin[1]) - margin[0] / (isTopmost ? 1 : 2);
+
+    let bottom = top + rowHeight;
+    bottom += isTopmost ? containerPadding[1] + 0.5 * margin[1] : margin[1];
+
+    return {left, right, top, bottom};
+  }
+
   render() {
+/*    const {containerToPlayground, draggedTileProps, margin, width, cols, children, layout, rowHeight} = this.props;
+    let {containerPadding} = this.props;
+    containerPadding = containerPadding || margin;
+
+    let catchBucket;
+    if (containerToPlayground && draggedTileProps) {
+      // this if block only applies if this RGL is the container, not a bucket
+      console.log('draggedTileProps',
+        draggedTileProps.newPositionInBucketCoords.left,
+        draggedTileProps.newPositionInPlaygroundCoords.left
+      );
+
+      const tile = {
+        left: draggedTileProps.newPositionInPlaygroundCoords.left,
+        top: draggedTileProps.newPositionInPlaygroundCoords.top,
+        w: draggedTileProps.dimensions.w,
+        h: draggedTileProps.dimensions.h
+      };
+
+      const bucketWidth = this.calcColWidth(margin, containerPadding, width, cols);
+      let buckets = React.Children.map(children, bucket => {
+        const l = getLayoutItem(layout, bucket.key);
+        const isLeftmost = l.x === 0;
+        const isRightmost = l.x === cols - l.w;
+        const isTopmost = l.y === 0;
+        // FIXME: there isn't a concept of bottommost in RGL - you can always add to the bottom and cause the container to expand
+
+        // define each bucket's sphere of influence from where it can catch flying tiles
+        // this.calcLimitedSpheresOfInfluence({l, containerPadding, bucketWidth, margin, isLeftmost, isRightmost, isTopmost, rowHeight});
+        const spheresOfInfluence = this.calcInfiniteSpheresOfInfluence({l, containerPadding, bucketWidth, margin, isLeftmost, isRightmost, isTopmost, rowHeight});
+
+        return {
+          ...l,
+          ...spheresOfInfluence
+        }
+      });
+
+      catchBucket = buckets.find(b => (
+        tile.left >= b.left && tile.left < b.right &&
+        tile.top >= b.top && tile.top < b.bottom
+      ));
+
+      if (catchBucket) {
+        // found a bucket to catch the tile being dragged
+        console.log('catchBucket', catchBucket.i);
+      } else {
+        console.error('no catchBucket');
+      }
+    }*/
+
     const {className, style} = this.props;
 
     const mergedStyle = {
@@ -458,7 +646,7 @@ export default class ReactGridLayout extends React.Component {
 
     return (
       <div className={classNames('react-grid-layout', className)} style={mergedStyle}>
-        {React.Children.map(this.props.children, (child) => this.processGridItem(child))}
+        {React.Children.map(this.props.children, (child) => this.processGridItem(child/*, catchBucket*/))}
         {this.placeholder()}
       </div>
     );

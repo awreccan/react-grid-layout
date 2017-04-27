@@ -289,29 +289,49 @@ export default class GridItem extends React.Component {
       if (!this.props[handlerName]) return;
 
       const newPosition: {top: number, left: number} = {top: 0, left: 0};
+      const newPositionInPlaygroundCoords: {top: number, left: number} = {top: 0, left: 0};
 
       // Get new XY
       switch (handlerName) {
         case 'onDragStart': {
           // ToDo this wont work on nested parents
+          const playgroundRect = node.offsetParent.offsetParent.getBoundingClientRect();
           const parentRect = node.offsetParent.getBoundingClientRect();
           const clientRect = node.getBoundingClientRect();
+
           newPosition.left = clientRect.left - parentRect.left;
           newPosition.top = clientRect.top - parentRect.top;
-          this.setState({dragging: newPosition});
+
+          newPositionInPlaygroundCoords.left = clientRect.left - playgroundRect.left;
+          newPositionInPlaygroundCoords.top = clientRect.top - playgroundRect.top;
+
+          this.setState({
+            dragging: newPosition,
+            draggingInPlaygroundCoords: newPositionInPlaygroundCoords
+          });
           break;
         }
         case 'onDrag':
           if (!this.state.dragging) throw new Error('onDrag called before onDragStart.');
           newPosition.left = this.state.dragging.left + deltaX;
           newPosition.top = this.state.dragging.top + deltaY;
-          this.setState({dragging: newPosition});
+          newPositionInPlaygroundCoords.left = this.state.draggingInPlaygroundCoords.left + deltaX;
+          newPositionInPlaygroundCoords.top = this.state.draggingInPlaygroundCoords.top + deltaY;
+          this.setState({
+            dragging: newPosition,
+            draggingInPlaygroundCoords: newPositionInPlaygroundCoords
+          });
           break;
         case 'onDragStop':
           if (!this.state.dragging) throw new Error('onDragEnd called before onDragStart.');
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
-          this.setState({dragging: null});
+          newPositionInPlaygroundCoords.left = this.state.draggingInPlaygroundCoords.left;
+          newPositionInPlaygroundCoords.top = this.state.draggingInPlaygroundCoords.top;
+          this.setState({
+            dragging: null,
+            draggingInPlaygroundCoords: null
+          });
           break;
         default:
           throw new Error('onDragHandler called with unrecognized handlerName: ' + handlerName);
@@ -319,7 +339,21 @@ export default class GridItem extends React.Component {
 
       const {x, y} = this.calcXY(newPosition.top, newPosition.left);
 
+
       this.props[handlerName](this.props.i, x, y, {e, node, newPosition});
+
+
+      let draggedTileProps = {
+        newPositionInBucketCoords: newPosition,
+        newPositionInPlaygroundCoords,
+        dimensions: {
+          w: this.props.w,
+          h: this.props.h
+        },
+        i: this.props.i
+      };
+      // console.log(message);
+      this.props.bucketToPlayground && this.props.bucketToPlayground(draggedTileProps);
     };
   }
 
@@ -370,7 +404,9 @@ export default class GridItem extends React.Component {
         cssTransforms: useCSSTransforms
       }),
       // We can set the width and height on the child, but unfortunately we can't set the position.
-      style: {...this.props.style, ...child.props.style, ...this.createStyle(pos)}
+      style: {...this.props.style, ...child.props.style, ...this.createStyle(pos)},
+      // add non-%, px width to inform the bucket of its assigned width
+      width: pos.width
     });
 
     // Resizable support. This is usually on but the user can toggle it off.
